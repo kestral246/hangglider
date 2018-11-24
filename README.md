@@ -5,7 +5,7 @@ This is a fork of the minetest-hangglider mod by Piezo_ (orderofthefourthwall@gm
 Which is located at:
     <https://notabug.org/Piezo_/minetest-hangglider>
 
-This version is an experimental version that is not intended for general use.
+**This version is an experimental version that is not intended for general use.**
 
 It includes the following changes by David G (kestral246@gmail.com):
 
@@ -27,7 +27,12 @@ It includes the following changes by David G (kestral246@gmail.com):
     - Issue: it wouldn't reset if land in water, use fly, and launch from air, before I added test for water,
         - Not sure if there are other such cases.
 
-- Temporarily add hud debug display to show descent velocity, gravity override, and airbreak flag.
-    - Still in process of tuning all the parameters.
+- Did another round of parameter tuning.
+    - Commented out hud debug display code with prefix "--debug:".
 
+- For Minetest 5.x the glider's set_attach point needs to be offset by 1 node.
+    - Provided alternate commented out version of this line that has the correct offset.
 
+- Discovered that sprint mod interferes with this mod's speed settings.
+    - It's likely that other mods that affect player_physics will have this same problem.
+    - May need to consider adding player_monoid support to this mod.
