@@ -3,12 +3,6 @@
 -- 2018-11-14
 
 -- Modifications by David G (kestral246@gmail.com)
--- 2018-11-24
--- For Minetest 5.x, glider's set_attach needs to be offset by 1 node
---     Switch to alternate commented line below with correct offset.
--- Additional tuning of parameters.
--- Commented out debug hud display code, prefixed with "--debug:".
-
 -- 2018-11-22
 -- Give visual indication that hangglider is equiped.
 --     Display simple overlay with blurred struts when equiped.
@@ -27,10 +21,35 @@
 -- Temporarily add hud debug display to show descent velocity, gravity override, and airbreak flag.
 --     Still in process of tuning all the parameters.
 
-local hangglider = {}
+-- Modifications by David G
+-- 2018-11-24
+-- For Minetest 5.x, glider's set_attach needs to be offset by 1 node
+--     Switch to alternate commented line below with correct offset.
+-- Additional tuning of parameters.
+-- Commented out debug hud display code, prefixed with "--debug:".
+
+-- Modifications by Piezo_
+-- 2018-11-25
+-- hud overlay and debug can be enabled/disabled
+-- Added blender-rendered overlay for struts using the actual model.
+-- Reduced airbreak penalty severity
+-- gave glider limited durability.
+
+-- Modifications by David G
+-- 2018-11-27
+-- Updated to Piezo_'s version. Many good improvements.
+-- Slightly blurred Piezo_'s new excellent strut overlay.
+-- Kept increased 1.75 speed, but now make it increase gradually too.
+
+
+local HUD_Overlay = true --show glider struts as overlay on HUD
+local debug = false --show debug info in top-center of hud
+hangglider = {} --Make this global, so other mods can tell if hangglider exists.
 hangglider.use = {}
+if HUD_Overlay then
 hangglider.id = {}  -- hud id for displaying overlay with struts
---debug: hangglider.debug = {}  -- hud id for debug data
+end
+if debug then  hangglider.debug = {} end -- hud id for debug data
 hangglider.airbreak = {}  -- true if falling fast when equip
 
 minetest.register_entity("hangglider:airstopper", { --A one-instant entity that catches the player and slows them down.
@@ -71,11 +90,16 @@ minetest.register_entity("hangglider:glider", {
 							canExist = true
 							local vel = player:get_player_velocity()
 							local grav = player:get_physics_override().gravity
-							--debug: player:hud_change(hangglider.debug[pname].id, "text", vel.y..', '..grav..', '..tostring(hangglider.airbreak[pname]))
+							local newspeed = player:get_physics_override().speed
+							if debug then player:hud_change(hangglider.debug[pname].id, "text", 'vy='..vel.y..', sp='..newspeed..', g='..grav..', '..tostring(hangglider.airbreak[pname])) end
 							-- If airbreaking used, increase the descent progression to not give
 							-- mid-flight unequip/equip cycles a distance advantage.
 							if hangglider.airbreak[pname] then
-								if vel.y <= -1.75 then
+								if vel.y <= -4.0 then
+									grav = -0.2 --Extreme measures are needed, as sometimes speed will get a bit out of control
+								elseif vel.y <= -2.0 then
+									grav = -0.02
+								elseif vel.y <= -1.75 then
 									grav = 0.00125  -- *1
 								elseif vel.y <= -1.5 then
 									grav = 0.0025  -- *2
@@ -88,14 +112,18 @@ minetest.register_entity("hangglider:glider", {
 								elseif vel.y <= -0.5 then
 									grav = 0.08  -- *4
 								elseif vel.y <= -0.25 then
-									grav = 0.20  -- *5
+									grav = 0.12  -- *3
 								elseif vel.y <= 0 then
-									grav = 0.6  -- *6
+									grav = 0.3  -- *3
 								else  -- vel.y > 0
-									grav = 1  -- *2
+									grav = 0.75  -- *1.5
 								end
 							else  -- normal descent progression
-								if vel.y <= -1.5 then
+								if vel.y <= -4.0 then
+									grav = -0.2
+								elseif vel.y <= -2.0 then
+									grav = -0.02
+								elseif vel.y <= -1.5 then
 									grav = 0.00125
 								elseif vel.y <= -1.25 then
 									grav = 0.0025
@@ -113,7 +141,14 @@ minetest.register_entity("hangglider:glider", {
 									grav = 0.5
 								end
 							end
-							player:set_physics_override({gravity = grav})
+							if vel.y >= 0 then
+								newspeed = 1
+							elseif vel.y < -2 then
+								newspeed = 1.75  -- limit to 1.75
+							else
+								newspeed = -vel.y * 0.375 + 1  -- gradually increase from 1 to 1.75
+							end
+							player:set_physics_override({gravity = grav, speed = newspeed})
 						end
 					end
 				end
@@ -124,7 +159,9 @@ minetest.register_entity("hangglider:glider", {
 						speed = 1,
 					})
 					hangglider.use[pname] = false
+					if HUD_Overlay then
 					player:hud_change(hangglider.id[pname], "text", "blank.png")
+					end
 					hangglider.airbreak[pname] = false
 				end
 			end
@@ -152,6 +189,7 @@ minetest.register_on_joinplayer(function(player)
 		jump = 1,
 	})
 	hangglider.use[pname] = false
+	if HUD_Overlay then
 	hangglider.id[pname] = player:hud_add({
 		hud_elem_type = "image",
 		text = "blank.png",
@@ -159,28 +197,30 @@ minetest.register_on_joinplayer(function(player)
 		scale = {x=-100, y=-100},
 		alignment = {x=1, y=1},
 		offset = {x=0, y=0}
-	})
-	--debug: hangglider.debug[pname] = {id = player:hud_add({hud_elem_type = "text",
-	--debug: 	position = {x=0.5, y=0.1},
-	--debug: 	text = "-",
-	--debug: 	number = 0xFF0000}),  -- red text
-	--debug: 	-- ht = {50,50,50},
-	--debug: }
+	}) end
+	if debug then 
+		hangglider.debug[pname] = {id = player:hud_add({hud_elem_type = "text",
+			position = {x=0.5, y=0.1},
+			text = "-",
+			number = 0xFF0000}),  -- red text
+			-- ht = {50,50,50},
+		}
+	end
 	hangglider.airbreak[pname] = false
 end)
 
 minetest.register_on_leaveplayer(function(player)
 	local pname = player:get_player_name()
 	hangglider.use[pname] = nil
-	hangglider.id[pname] = nil
-	--debug: hangglider.debug[pname] = nil
+	if HUD_Overlay then hangglider.id[pname] = nil end
+	if debug then hangglider.debug[pname] = nil end
 	hangglider.airbreak[pname] = nil
 end)
 
-minetest.register_craftitem("hangglider:hangglider", {
+minetest.register_tool("hangglider:hangglider", {
 	description = "Glider",
 	inventory_image = "glider_item.png",
-	
+	stack_max=1,
 	on_use = function(itemstack, user, pointed_thing)
 		if not user then
 			return
@@ -189,14 +229,14 @@ minetest.register_craftitem("hangglider:hangglider", {
 		local pname = user:get_player_name()
 		if minetest.get_node(pos).name == "air" and not hangglider.use[pname] then --Equip
 			minetest.sound_play("bedsheet", {pos=pos, max_hear_distance = 8, gain = 1.0})
-			user:hud_change(hangglider.id[pname], "text", "glider_struts.png")
+			if HUD_Overlay then user:hud_change(hangglider.id[pname], "text", "glider_struts.png") end
 			local vel = user:get_player_velocity().y
 			if vel < -2 then  -- engage mid-air, falling fast, so stop but ramp velocity more quickly
 				hangglider.airbreak[pname] = true
 				user:set_physics_override({
 					gravity = 1,
 					jump = 0,
-					speed = 1.25,
+					speed = 1,
 				})
 				local stopper = minetest.add_entity(pos, "hangglider:airstopper")
 				stopper:get_luaentity().attach = user
@@ -205,7 +245,7 @@ minetest.register_craftitem("hangglider:hangglider", {
 				user:set_physics_override({
 					gravity = 0.02,
 					jump = 0,
-					speed = 1.25,
+					speed = 1,
 				})
 			end
 			hangglider.use[pname] = true
@@ -213,11 +253,14 @@ minetest.register_craftitem("hangglider:hangglider", {
 			minetest.add_entity(user:get_pos(), "hangglider:glider"):set_attach(user, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 			-- if minetest 5.x use this:
 			-- minetest.add_entity(user:get_pos(), "hangglider:glider"):set_attach(user, "", {x=0,y=10,z=0}, {x=0,y=0,z=0})
+			itemstack:set_wear(itemstack:get_wear() + 255)
+			return itemstack
 		elseif hangglider.use[pname] then --Unequip
-			user:hud_change(hangglider.id[pname], "text", "blank.png")
+			if HUD_Overlay then user:hud_change(hangglider.id[pname], "text", "blank.png") end
 			hangglider.use[pname] = false
 		end
-	end
+	end,
+	sound = {breaks = "default_tool_breaks"},
 })
 
 minetest.register_craft({

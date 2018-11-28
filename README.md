@@ -7,32 +7,17 @@ Which is located at:
 
 **This version is an experimental version that is not intended for general use.**
 
-It includes the following changes by David G (kestral246@gmail.com):
+This was synched up with Piezo_'s updates from Nov 25
 
-- Give visual indication that hangglider is equiped.
-    - Display simple overlay with blurred struts when equiped.
-    - Issue: don't know how to disable overlay when using third person view.
+- hud overlay and debug can be enabled/disabled
+- Added blender-rendered overlay for struts using the actual model.
+- Reduced airbreak penalty severity
+- gave glider limited durability.
 
-- Also unequip hangglider when landing on water.
+The only changes I've made are:
 
-- Attempt to linearize parabolic flight path.
-    - Start gravity stronger, but gradually reduce it as descent velocity increases.
-    - Don't use airstopper when equipped from the ground (descent velocity is low).
-    - Slightly increase flight speed to 1.25.
+- Slightly blurred Piezo_'s excellent strut overlay.
+- Created new blank.png with same size as Piezo_'s overlay.
+- Piezo_ also increased flight speed to 1.75.  This was OK, but the transition seemed too abrupt.
+    - I changed flight speed to also increase smoothly. It starts at 1 and maxes out at 1.75.
 
-- Unequip/equip cycling mid-flight should not fly farther than continuous flight.
-    - When equipping mid-air (descent velocity higher), use airstopper but increase descent slope afterwards.
-    - Create airbreak flag so all equips mid-flight use faster descent.
-    - Reset airbreak flag only when land (canExist goes false).
-    - Issue: it wouldn't reset if land in water, use fly, and launch from air, before I added test for water,
-        - Not sure if there are other such cases.
-
-- Did another round of parameter tuning.
-    - Commented out hud debug display code with prefix "--debug:".
-
-- For Minetest 5.x the glider's set_attach point needs to be offset by 1 node.
-    - Provided alternate commented out version of this line that has the correct offset.
-
-- Discovered that sprint mod interferes with this mod's speed settings.
-    - It's likely that other mods that affect player_physics will have this same problem.
-    - May need to consider adding player_monoid support to this mod.
