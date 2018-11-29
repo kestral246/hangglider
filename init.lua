@@ -41,6 +41,10 @@
 -- Slightly blurred Piezo_'s new excellent strut overlay.
 -- Kept increased 1.75 speed, but now make it increase gradually too.
 
+-- Modifications by David G
+-- 2018-11-28
+-- Detect minetest version to automatically use appropriate set_attach offset.
+
 
 local HUD_Overlay = true --show glider struts as overlay on HUD
 local debug = false --show debug info in top-center of hud
@@ -249,10 +253,14 @@ minetest.register_tool("hangglider:hangglider", {
 				})
 			end
 			hangglider.use[pname] = true
-			-- if minetest 0.4.x use this:
-			minetest.add_entity(user:get_pos(), "hangglider:glider"):set_attach(user, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
-			-- if minetest 5.x use this:
-			-- minetest.add_entity(user:get_pos(), "hangglider:glider"):set_attach(user, "", {x=0,y=10,z=0}, {x=0,y=0,z=0})
+			-- print(minetest.serialize(minetest.get_version()))
+			if string.sub(minetest.get_version().string, 1, 1) == "5" then
+				-- minetest 5.x, need positive offset
+				minetest.add_entity(user:get_pos(), "hangglider:glider"):set_attach(user, "", {x=0,y=10,z=0}, {x=0,y=0,z=0})
+			else
+				-- minetest 0.4.x, no offset needed
+				minetest.add_entity(user:get_pos(), "hangglider:glider"):set_attach(user, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+			end
 			itemstack:set_wear(itemstack:get_wear() + 255)
 			return itemstack
 		elseif hangglider.use[pname] then --Unequip

@@ -20,4 +20,4 @@ The only changes I've made are:
 - Created new blank.png with same size as Piezo_'s overlay.
 - Piezo_ also increased flight speed to 1.75.  This was OK, but the transition seemed too abrupt.
     - I changed flight speed to also increase smoothly. It starts at 1 and maxes out at 1.75.
-
+- Use minetest.get_version() to automatically choose which set_attach offset to use.
