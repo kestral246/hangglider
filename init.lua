@@ -21,7 +21,6 @@
 -- Temporarily add hud debug display to show descent velocity, gravity override, and airbreak flag.
 --     Still in process of tuning all the parameters.
 
--- Modifications by David G
 -- 2018-11-24
 -- For Minetest 5.x, glider's set_attach needs to be offset by 1 node
 --     Switch to alternate commented line below with correct offset.
@@ -41,10 +40,11 @@
 -- Slightly blurred Piezo_'s new excellent strut overlay.
 -- Kept increased 1.75 speed, but now make it increase gradually too.
 
--- Modifications by David G
 -- 2018-11-28
 -- Detect minetest version to automatically use appropriate set_attach offset.
 
+-- 2018-12-05
+-- Remove blank.png.
 
 local HUD_Overlay = true --show glider struts as overlay on HUD
 local debug = false --show debug info in top-center of hud
@@ -164,7 +164,7 @@ minetest.register_entity("hangglider:glider", {
 					})
 					hangglider.use[pname] = false
 					if HUD_Overlay then
-					player:hud_change(hangglider.id[pname], "text", "blank.png")
+					player:hud_change(hangglider.id[pname], "text", "")
 					end
 					hangglider.airbreak[pname] = false
 				end
@@ -196,7 +196,7 @@ minetest.register_on_joinplayer(function(player)
 	if HUD_Overlay then
 	hangglider.id[pname] = player:hud_add({
 		hud_elem_type = "image",
-		text = "blank.png",
+		text = "",
 		position = {x=0, y=0},
 		scale = {x=-100, y=-100},
 		alignment = {x=1, y=1},
@@ -264,7 +264,7 @@ minetest.register_tool("hangglider:hangglider", {
 			itemstack:set_wear(itemstack:get_wear() + 255)
 			return itemstack
 		elseif hangglider.use[pname] then --Unequip
-			if HUD_Overlay then user:hud_change(hangglider.id[pname], "text", "blank.png") end
+			if HUD_Overlay then user:hud_change(hangglider.id[pname], "text", "") end
 			hangglider.use[pname] = false
 		end
 	end,
