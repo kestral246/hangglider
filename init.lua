@@ -46,10 +46,16 @@
 -- 2018-12-05
 -- Remove blank.png.
 
+-- 2018-12-07
+-- Unequip hangglider if it is not longer the wielded_item, while in use.
+-- Add AUX key as alternate equip option, to use with android clients.
+-- Disabled wear of hangglider for now.
+
 local HUD_Overlay = true --show glider struts as overlay on HUD
 local debug = false --show debug info in top-center of hud
 hangglider = {} --Make this global, so other mods can tell if hangglider exists.
 hangglider.use = {}
+local prev_equip_key = {}
 if HUD_Overlay then
 hangglider.id = {}  -- hud id for displaying overlay with struts
 end
@@ -178,11 +184,13 @@ minetest.register_entity("hangglider:glider", {
 })
 
 minetest.register_on_dieplayer(function(player)
+	local pname = player:get_player_name()
 	player:set_physics_override({
 		gravity = 1,
 		jump = 1,
 	})
-	hangglider.use[player:get_player_name()] = false
+	hangglider.use[pname] = false
+	prev_equip_key[pname] = false
 end)
 
 
@@ -193,6 +201,7 @@ minetest.register_on_joinplayer(function(player)
 		jump = 1,
 	})
 	hangglider.use[pname] = false
+	prev_equip_key[pname] = false
 	if HUD_Overlay then
 	hangglider.id[pname] = player:hud_add({
 		hud_elem_type = "image",
@@ -216,6 +225,7 @@ end)
 minetest.register_on_leaveplayer(function(player)
 	local pname = player:get_player_name()
 	hangglider.use[pname] = nil
+	prev_equip_key[pname] = nil
 	if HUD_Overlay then hangglider.id[pname] = nil end
 	if debug then hangglider.debug[pname] = nil end
 	hangglider.airbreak[pname] = nil
@@ -261,15 +271,76 @@ minetest.register_tool("hangglider:hangglider", {
 				-- minetest 0.4.x, no offset needed
 				minetest.add_entity(user:get_pos(), "hangglider:glider"):set_attach(user, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 			end
-			itemstack:set_wear(itemstack:get_wear() + 255)
-			return itemstack
+			-- itemstack:set_wear(itemstack:get_wear() + 255)
+			-- return itemstack
 		elseif hangglider.use[pname] then --Unequip
 			if HUD_Overlay then user:hud_change(hangglider.id[pname], "text", "") end
 			hangglider.use[pname] = false
 		end
 	end,
-	sound = {breaks = "default_tool_breaks"},
+	-- sound = {breaks = "default_tool_breaks"},
 })
+
+-- Equip hangglider by using AUX key (default 'E' key).
+-- Also checks that hangglider is wielded item.  If not it's unequiped.
+minetest.register_globalstep(function(dtime)
+    local players  = minetest.get_connected_players()
+    for i,player in ipairs(players) do
+		-- check if wielding hangglider
+		local wielded_item = player:get_wielded_item():get_name()
+		local pname = player:get_player_name()
+		if string.sub(wielded_item, 0, 21)== "hangglider:hangglider" then -- wielding hangglider
+			-- check if just pressed jump key
+			local pos = player:get_pos()
+			-- check height of two?
+			local current_equip_key = player:get_player_control().aux1
+			if prev_equip_key[pname] == false and current_equip_key == true then -- Equip key just pressed
+				if minetest.get_node(pos).name == "air" and not hangglider.use[pname] then --Equip
+					minetest.sound_play("bedsheet", {pos=pos, max_hear_distance = 8, gain = 1.0})
+					if HUD_Overlay then player:hud_change(hangglider.id[pname], "text", "glider_struts.png") end
+					local vel = player:get_player_velocity().y
+					if vel < -2 then  -- engage mid-air, falling fast, so stop but ramp velocity more quickly
+						hangglider.airbreak[pname] = true
+						player:set_physics_override({
+							gravity = 1,
+							jump = 0,
+							speed = 1,
+						})
+						local stopper = minetest.add_entity(pos, "hangglider:airstopper")
+						stopper:get_luaentity().attach = player
+						player:set_attach( stopper, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+					else
+						player:set_physics_override({
+							gravity = 0.02,
+							jump = 0,
+							speed = 1,
+						})
+					end
+					hangglider.use[pname] = true
+					-- print(minetest.serialize(minetest.get_version()))
+					if string.sub(minetest.get_version().string, 1, 1) == "5" then
+						-- minetest 5.x, need positive offset
+						minetest.add_entity(player:get_pos(), "hangglider:glider"):set_attach(player, "", {x=0,y=10,z=0}, {x=0,y=0,z=0})
+					else
+						-- minetest 0.4.x, no offset needed
+						minetest.add_entity(player:get_pos(), "hangglider:glider"):set_attach(player, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+					end
+					-- itemstack:set_wear(itemstack:get_wear() + 255)
+					-- return itemstack
+				elseif hangglider.use[pname] then --Unequip
+					if HUD_Overlay then player:hud_change(hangglider.id[pname], "text", "") end
+					hangglider.use[pname] = false
+				end
+			end
+			prev_equip_key[pname] = current_equip_key
+		else -- not wielding hangglider
+			if hangglider.use[pname] then --Unequip
+				if HUD_Overlay then player:hud_change(hangglider.id[pname], "text", "") end
+				hangglider.use[pname] = false
+			end
+		end
+	end
+end)
 
 minetest.register_craft({
 	output = "hangglider:hangglider",
