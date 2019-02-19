@@ -55,6 +55,10 @@
 -- Wear is back and better than ever. Breaks on unequip rather than equip.
 -- Adjust glider_uses below, default 50.
 
+-- 2019-02-19
+-- Add sound while gliding.
+-- Loop derived from "Flag Flapping in Wind" by Felix Blume, CC0 1.0 Universal License
+
 -- Configuration variables
 local HUD_Overlay = true --show glider struts as overlay on HUD
 local debug = false --show debug info in top-center of hud
@@ -62,6 +66,7 @@ local glider_uses = 50 -- define number of uses before hangglider wears out
 -- End configuration
 
 hangglider = {} --Make this global, so other mods can tell if hangglider exists.
+local handles = {}
 hangglider.use = {}
 local prev_equip_key = {}
 if HUD_Overlay then
@@ -171,6 +176,10 @@ minetest.register_entity("hangglider:glider", {
 								newspeed = -vel.y * 0.375 + 1  -- gradually increase from 1 to 1.75
 							end
 							player:set_physics_override({gravity = grav, speed = newspeed})
+							if not handles[pname] then
+								local handle = minetest.sound_play("hangglider_flying", {to_player = pname, gain = 0.5, loop = true})-- {object = self.object, loop = true})
+								handles[pname] = handle
+							end
 						end
 					end
 				end
@@ -181,6 +190,10 @@ minetest.register_entity("hangglider:glider", {
 						speed = 1,
 					})
 					hangglider.use[pname] = false
+					if handles[pname] then  -- stop sound if playing
+						minetest.sound_stop(handles[pname])
+						handles[pname] = nil
+					end
 					if HUD_Overlay then
 					player:hud_change(hangglider.id[pname], "text", "")
 					end
@@ -207,6 +220,7 @@ minetest.register_on_dieplayer(function(player)
 	})
 	hangglider.use[pname] = false
 	prev_equip_key[pname] = false
+	handles[pname] = nil
 end)
 
 
@@ -217,6 +231,7 @@ minetest.register_on_joinplayer(function(player)
 		jump = 1,
 	})
 	hangglider.use[pname] = false
+	handles[pname] = nil
 	prev_equip_key[pname] = false
 	if HUD_Overlay then
 	hangglider.id[pname] = player:hud_add({
@@ -241,6 +256,7 @@ end)
 minetest.register_on_leaveplayer(function(player)
 	local pname = player:get_player_name()
 	hangglider.use[pname] = nil
+	handles[pname] = nil
 	prev_equip_key[pname] = nil
 	if HUD_Overlay then hangglider.id[pname] = nil end
 	if debug then hangglider.debug[pname] = nil end

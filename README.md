@@ -5,7 +5,7 @@ This is a fork of the minetest-hangglider mod by Piezo_ (orderofthefourthwall@gm
 Which is located at:
     <https://notabug.org/Piezo_/minetest-hangglider>
 
-This was synched up with Piezo_'s updates from Nov 25.
+This was last synched up with Piezo_'s updates from Nov 25.
 
 - hud overlay and debug can be enabled/disabled.
 - Added blender-rendered overlay for struts using the actual model.
@@ -23,3 +23,4 @@ I've made the following changes to the code:
 - Wear is back and better than ever. Breaks on unequip rather than equip, so doesn't leave you falling from a cliff.
 - Number of uses is configurable, currently defaults to 50, but expect this will need tuning.
 - Updated pos offset for launching, so don't have unintended wear when standing.
+- Added sound while flying. Loop derived from "Flag Flapping in Wind" by Felix Blume, CC0 1.0 Universal License.
