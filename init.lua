@@ -57,7 +57,6 @@
 
 -- 2019-02-19
 -- Add sound while gliding.
--- Loop derived from "Flag Flapping in Wind" by Felix Blume, CC0 1.0 Universal License
 
 -- Configuration variables
 local HUD_Overlay = true --show glider struts as overlay on HUD
